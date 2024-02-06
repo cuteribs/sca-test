@@ -1,36 +1,47 @@
-name: Snyk Security
+name: SNYK Scan
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'     ## 2am daily
-
-permissions:
-  contents: read
+    - cron: '0 1 * * 0'     ## every SAT/SUN 1AM
 
 jobs:
-  security:
+  snyk_scan:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@master
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 6.0.x
-        
-      - name: Restore dependencies
-        run: dotnet restore ./sca-test.csproj
-        
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/dotnet@master
-        continue-on-error: true # To make sure that SARIF upload gets called
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --sarif-file-output=snyk.sarif
-          
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: snyk.sarif
+    - name: Check out main branch
+      uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Restore nuget packages
+      run: dotnet restore
+
+    - name: Cache Snyk
+      id: cache-snyk
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-snyk
+      with:
+        path: ~/snyk
+        key: ${{ runner.os }}-snyk
+
+    - if: ${{ steps.cache-snyk.outputs.cache-hit != 'true' }}
+      name: Install Snyk CLI
+      run: |
+        curl https://static.snyk.io/cli/latest/snyk-linux -o ~/snyk
+        chmod +x ~/snyk
+
+    - name: Snyk scan
+      continue-on-error: true
+      run: |
+        cd src
+        ~/snyk auth ${{ secrets.SNYK_TOKEN }}
+        ~/snyk config set org=3b6229b4-e0fe-405e-8283-ac41405bf85c
+        ~/snyk test --all-projects
+        ~/snyk monitor --all-projects
+        ~/snyk code test --report --project-name="sca-test"
