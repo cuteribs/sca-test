@@ -42,5 +42,10 @@ jobs:
         ~/snyk auth ${{ secrets.SNYK_TOKEN }}
         ~/snyk config set org=3b6229b4-e0fe-405e-8283-ac41405bf85c
         ~/snyk test --all-projects
+
+    - name: Snyk upload
+      continue-on-error: true
+      run: |
+        ~/snyk auth ${{ secrets.SNYK_TOKEN }}
+        ~/snyk config set org=3b6229b4-e0fe-405e-8283-ac41405bf85c
         ~/snyk monitor --all-projects
-        ~/snyk code test --report --project-name="sca-test"
