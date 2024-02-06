@@ -20,7 +20,7 @@ jobs:
           dotnet-version: 6.0.x
         
       - name: Restore dependencies
-        run: dotnet restore ./path/to/your.sln
+        run: dotnet restore ./sca-test.csproj
         
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/dotnet@master
